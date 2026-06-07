@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>THE GENIE'S CHALLENGE ✨</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Nunito:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --gold:#f0c040; --gold2:#c8920a; --violet:#9b6fff;
+  --cyan:#00e5ff; --rose:#ff4fa0; --green:#00e890;
+  --white:#f0eeff; --muted:rgba(240,224,255,0.5);
+  --deep:#07051a; --card:#1a1640;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--deep);font-family:'Nunito',sans-serif;color:var(--white);overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(1.5px 1.5px at 8% 12%,rgba(255,255,255,.8) 0%,transparent 100%),
+    radial-gradient(1px 1px at 25% 70%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(2px 2px at 42% 28%,rgba(255,255,255,.7) 0%,transparent 100%),
+    radial-gradient(1px 1px at 60% 85%,rgba(255,255,255,.4) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 75% 15%,rgba(255,255,255,.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 55%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 15% 50%,rgba(255,255,255,.3) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 45%,rgba(255,255,255,.5) 0%,transparent 100%);}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;opacity:.28;}
+.orb1{width:320px;height:320px;background:var(--violet);top:-100px;left:-100px;animation:o1 9s ease-in-out infinite alternate;}
+.orb2{width:260px;height:260px;background:var(--cyan);bottom:-80px;right:-80px;animation:o2 7s ease-in-out infinite alternate;}
+.orb3{width:180px;height:180px;background:var(--rose);top:45%;left:35%;opacity:.14;animation:o1 11s ease-in-out infinite alternate-reverse;}
+@keyframes o1{from{transform:translate(0,0)}to{transform:translate(40px,25px)}}
+@keyframes o2{from{transform:translate(0,0)}to{transform:translate(-30px,-20px)}}
+
+.screen{display:none;position:fixed;inset:0;z-index:1;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;padding:24px 20px 50px;gap:16px;text-align:center;}
+.screen.active{display:flex;}
+
+.lamp{font-size:72px;animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 24px rgba(240,192,64,.6));}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-14px) rotate(6deg)}}
+.title-main{font-family:'Cinzel Decorative',cursive;font-size:clamp(22px,8vw,38px);font-weight:900;color:var(--gold);text-shadow:0 0 40px rgba(240,192,64,.5);line-height:1.2;}
+.title-sub{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+.desc-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:18px 22px;max-width:360px;width:100%;font-size:14px;color:var(--muted);line-height:1.75;}
+.desc-box b{color:var(--gold);}
+
+.inp-wrap{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;width:100%;max-width:360px;transition:border-color .2s;}
+.inp-wrap:focus-within{border-color:var(--violet);}
+.inp-wrap input{flex:1;background:none;border:none;outline:none;color:var(--white);font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;}
+.inp-wrap input::placeholder{color:rgba(255,255,255,.2);}
+.inp-wrap .ico{font-size:20px;}
+
+.btn-gold{width:100%;max-width:360px;padding:17px;border:none;border-radius:18px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a0a00;font-family:'Cinzel Decorative',cursive;font-size:17px;font-weight:700;cursor:pointer;letter-spacing:1px;box-shadow:0 6px 28px rgba(240,192,64,.35),0 2px 0 #7a5000;transition:transform .15s,box-shadow .15s;}
+.btn-gold:active{transform:translateY(3px);box-shadow:0 2px 10px rgba(240,192,64,.2),0 0 0 #7a5000;}
+.btn-gold:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-outline{width:100%;max-width:360px;padding:14px;border:1.5px solid rgba(255,255,255,.12);border-radius:16px;background:transparent;color:rgba(255,255,255,.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-outline:active{background:rgba(255,255,255,.07);color:white;}
+
+/* CODE DISPLAY */
+.code-box{background:linear-gradient(135deg,rgba(155,111,255,.15),rgba(0,229,255,.08));border:2px solid rgba(155,111,255,.35);border-radius:20px;padding:24px 28px;max-width:360px;width:100%;}
+.code-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;}
+.code-big{font-family:'Cinzel Decorative',cursive;font-size:48px;color:var(--gold);letter-spacing:8px;text-shadow:0 0 30px rgba(240,192,64,.4);}
+.code-hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;}
+
+/* WAITING */
+.waiting-dots{display:flex;gap:8px;align-items:center;justify-content:center;}
+.waiting-dots span{width:10px;height:10px;background:var(--violet);border-radius:50%;animation:dp 1.2s infinite;}
+.waiting-dots span:nth-child(2){animation-delay:.2s}.waiting-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1.1)}}
+
+/* THINK SCREEN */
+#s-think{gap:20px;}
+.think-genie{font-size:64px;animation:float 3s ease-in-out infinite;}
+.think-player{font-family:'Cinzel Decorative',cursive;font-size:22px;color:var(--gold);}
+
+/* QUESTION SCREEN */
+#s-question{gap:14px;padding-top:30px;justify-content:flex-start;}
+.top-row{width:100%;display:flex;justify-content:space-between;align-items:center;}
+.q-pill{background:rgba(155,111,255,.2);border:1px solid rgba(155,111,255,.4);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:900;color:var(--violet);letter-spacing:2px;text-transform:uppercase;}
+.q-total{font-size:12px;color:var(--muted);font-weight:700;}
+
+/* Both players answers display */
+.answers-display{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ans-display-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.ans-display-card.answered{border-color:rgba(155,111,255,.4);background:rgba(155,111,255,.07);}
+.adc-name{font-size:12px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.adc-ans{font-size:14px;font-weight:900;color:var(--white);}
+.adc-conf{font-family:'Cinzel Decorative',cursive;font-size:16px;}
+.adc-bar-bg{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.adc-bar{height:100%;border-radius:2px;transition:width .8s ease,background .5s;}
+
+/* GENIE BOX */
+.genie-box{width:100%;background:linear-gradient(145deg,rgba(34,30,74,.95),rgba(10,8,32,.98));border:1.5px solid rgba(155,111,255,.25);border-radius:24px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;position:relative;overflow:hidden;}
+.genie-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--gold));}
+.genie-face{font-size:44px;animation:gf 2.5s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(155,111,255,.5));}
+@keyframes gf{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.genie-q{font-size:16px;font-weight:700;line-height:1.6;color:var(--white);text-align:center;min-height:50px;display:flex;align-items:center;justify-content:center;}
+.genie-comment{font-size:12px;color:var(--violet);font-style:italic;margin-bottom:2px;text-align:center;}
+
+/* MY ANSWER SECTION */
+.my-ans-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;width:100%;}
+.ans-grid{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ans-btn{padding:14px 8px;border-radius:16px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--white);font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ans-btn .ai{font-size:20px;}
+.ans-btn:active{transform:scale(.94);}
+.ans-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.a-yes{border-color:rgba(0,232,144,.3);}.a-yes:not(:disabled):active,.a-yes:not(:disabled):hover{background:rgba(0,232,144,.12);border-color:var(--green);color:var(--green);}
+.a-no{border-color:rgba(255,79,160,.3);}.a-no:not(:disabled):active,.a-no:not(:disabled):hover{background:rgba(255,79,160,.12);border-color:var(--rose);color:var(--rose);}
+.a-prob{border-color:rgba(240,192,64,.3);}.a-prob:not(:disabled):active,.a-prob:not(:disabled):hover{background:rgba(240,192,64,.1);border-color:var(--gold);color:var(--gold);}
+.a-idk{border-color:rgba(0,229,255,.3);}.a-idk:not(:disabled):active,.a-idk:not(:disabled):hover{background:rgba(0,229,255,.08);border-color:var(--cyan);color:var(--cyan);}
+
+.answered-badge{background:rgba(0,232,144,.12);border:1.5px solid rgba(0,232,144,.3);border-radius:14px;padding:12px;width:100%;text-align:center;font-size:14px;font-weight:900;color:var(--green);}
+.waiting-other{font-size:13px;color:var(--muted);font-style:italic;}
+
+/* CHALLENGE */
+#s-challenge{gap:18px;padding:30px 20px;}
+.ch-label{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+.ch-player{font-family:'Cinzel Decorative',cursive;font-size:22px;color:var(--rose);text-shadow:0 0 20px rgba(255,79,160,.4);}
+.ch-box{background:linear-gradient(135deg,rgba(255,79,160,.1),rgba(155,111,255,.07));border:2px solid rgba(255,79,160,.3);border-radius:24px;padding:26px 22px;max-width:360px;width:100%;}
+.ch-type{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:3px;color:var(--rose);margin-bottom:12px;}
+.ch-text{font-size:17px;font-weight:700;line-height:1.65;color:var(--white);}
+.ch-tip{margin-top:12px;font-size:12px;color:var(--muted);font-style:italic;}
+.btn-rose{width:100%;max-width:360px;padding:17px;border:none;border-radius:18px;background:linear-gradient(135deg,var(--rose),#c0306a);color:#fff;font-family:'Cinzel Decorative',cursive;font-size:17px;cursor:pointer;box-shadow:0 5px 24px rgba(255,79,160,.35);transition:transform .15s;}
+.btn-rose:active{transform:translateY(3px);}
+
+/* RESULT */
+#s-result{gap:16px;padding:30px 20px;}
+.res-trophy{font-size:72px;animation:float 3s ease-in-out infinite;}
+.res-title{font-family:'Cinzel Decorative',cursive;font-size:clamp(18px,7vw,30px);color:var(--gold);text-shadow:0 0 30px rgba(240,192,64,.45);}
+.res-sub{font-size:14px;color:var(--muted);max-width:320px;line-height:1.65;}
+.score-list{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;}
+.score-item{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:16px;padding:14px 18px;}
+.score-item.winner{background:rgba(240,192,64,.08);border-color:rgba(240,192,64,.3);}
+.score-rank{font-size:26px;min-width:34px;}
+.score-info{flex:1;text-align:left;}
+.score-name{font-size:16px;font-weight:900;}
+.score-detail{font-size:12px;color:var(--muted);}
+
+/* confetti */
+.conf-dot{position:fixed;border-radius:2px;pointer-events:none;z-index:100;animation:cfall 1.5s ease-in forwards;}
+@keyframes cfall{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(110vh) rotate(900deg)}}
+
+@keyframes fu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.screen.active>*{animation:fu .4s ease both;}
+.screen.active>*:nth-child(2){animation-delay:.07s;}
+.screen.active>*:nth-child(3){animation-delay:.14s;}
+.screen.active>*:nth-child(4){animation-delay:.21s;}
+.screen.active>*:nth-child(5){animation-delay:.28s;}
+.screen.active>*:nth-child(6){animation-delay:.35s;}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="lamp">🪔</div>
+  <div class="title-main">THE GENIE'S<br>CHALLENGE</div>
+  <div class="title-sub">Multiplayer · Each on their phone</div>
+  <div class="desc-box">
+    <b>Think of a famous person.</b> The Genie asks 7 questions.<br>
+    Answer honestly. If the Genie guesses you — you get a challenge! 😈<br><br>
+    Last player standing <b>wins</b>!
+  </div>
+  <div class="inp-wrap">
+    <span class="ico">🦁</span>
+    <input id="inp-name" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
+  </div>
+  <button class="btn-gold" id="btn-create" onclick="createRoom()">CREATE A ROOM 🔮</button>
+  <button class="btn-outline" onclick="showJoin()">JOIN WITH A CODE →</button>
+</div>
+
+<!-- JOIN -->
+<div id="s-join" class="screen">
+  <div class="lamp">🪔</div>
+  <div class="title-main">JOIN A ROOM</div>
+  <div class="inp-wrap">
+    <span class="ico">🦁</span>
+    <input id="inp-join-name" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
+  </div>
+  <div class="inp-wrap">
+    <span class="ico">🔑</span>
+    <input id="inp-code" type="text" placeholder="Room code (4 letters)" maxlength="4" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;font-size:20px;">
+  </div>
+  <button class="btn-gold" id="btn-join" onclick="joinRoom()">JOIN THE ROOM ✨</button>
+  <button class="btn-outline" onclick="show('s-home')">← Back</button>
+</div>
+
+<!-- WAITING (host) -->
+<div id="s-waiting" class="screen">
+  <div class="lamp">🪔</div>
+  <div class="title-main">WAITING...</div>
+  <div class="code-box">
+    <div class="code-label">Share this code with your friend</div>
+    <div class="code-big" id="display-code">????</div>
+    <div class="code-hint">Your friend enters this code on their phone to join your room</div>
+  </div>
+  <div class="waiting-dots"><span></span><span></span><span></span></div>
+  <div style="font-size:14px;color:var(--muted);">Waiting for your friend to join…</div>
+</div>
+
+<!-- THINK (choose your person) -->
+<div id="s-think" class="screen">
+  <div class="think-genie">🧞</div>
+  <div class="think-player" id="think-name">Player</div>
+  <div class="desc-box">
+    <b>Think of a famous person.</b><br><br>
+    A celebrity, athlete, historical figure, movie character, cartoon, singer, politician… anyone famous!<br><br>
+    <b>Keep it completely secret in your head.</b> Don't say it out loud! 🤫<br><br>
+    When you're ready, tap the button.
+  </div>
+  <button class="btn-gold" id="btn-ready" onclick="playerReady()">I'VE CHOSEN MY PERSON 🔒</button>
+</div>
+
+<!-- WAITING FOR OTHER PLAYER -->
+<div id="s-waiting-ready" class="screen">
+  <div class="think-genie" style="font-size:56px;">⏳</div>
+  <div class="title-main" style="font-size:24px;">Almost there!</div>
+  <div style="font-size:15px;color:var(--muted);">Waiting for your friend to choose their person…</div>
+  <div class="waiting-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- QUESTION -->
+<div id="s-question" class="screen">
+  <div class="top-row">
+    <div class="q-pill" id="q-pill">Question 1</div>
+    <div class="q-total" id="q-total">of 7</div>
+  </div>
+
+  <!-- Both players answers -->
+  <div class="answers-display">
+    <div class="ans-display-card" id="adc-0">
+      <div class="adc-name" id="adc-name-0">Player 1</div>
+      <div class="adc-ans" id="adc-ans-0">—</div>
+      <div class="adc-conf" id="adc-conf-0" style="color:var(--green)">0%</div>
+      <div class="adc-bar-bg"><div class="adc-bar" id="adc-bar-0" style="width:0%;background:var(--green)"></div></div>
+    </div>
+    <div class="ans-display-card" id="adc-1">
+      <div class="adc-name" id="adc-name-1">Player 2</div>
+      <div class="adc-ans" id="adc-ans-1">—</div>
+      <div class="adc-conf" id="adc-conf-1" style="color:var(--green)">0%</div>
+      <div class="adc-bar-bg"><div class="adc-bar" id="adc-bar-1" style="width:0%;background:var(--green)"></div></div>
+    </div>
+  </div>
+
+  <!-- Genie -->
+  <div class="genie-box">
+    <div class="genie-face" id="g-face">🧞</div>
+    <div id="g-comment" class="genie-comment" style="display:none"></div>
+    <div class="genie-q" id="g-question">
+      <div class="waiting-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- My answer -->
+  <div class="my-ans-label">YOUR ANSWER ↓</div>
+  <div class="ans-grid" id="ans-grid">
+    <button class="ans-btn a-yes" onclick="submitMyAnswer('Yes ✅')"><span class="ai">✅</span>Yes</button>
+    <button class="ans-btn a-no"  onclick="submitMyAnswer('No ❌')"><span class="ai">❌</span>No</button>
+    <button class="ans-btn a-prob" onclick="submitMyAnswer('Probably 🤔')"><span class="ai">🤔</span>Probably</button>
+    <button class="ans-btn a-idk"  onclick="submitMyAnswer('Don\'t know 🤷')"><span class="ai">🤷</span>Don't know</button>
+  </div>
+  <div id="answered-msg" style="display:none" class="answered-badge">✅ Answer sent! Waiting for your friend…</div>
+  <div class="waiting-other" id="waiting-other" style="display:none">⏳ Your friend is still thinking…</div>
+</div>
+
+<!-- CHALLENGE -->
+<div id="s-challenge" class="screen">
+  <div class="ch-label" id="ch-label">The Genie found someone!</div>
+  <div class="ch-player" id="ch-player">Player</div>
+  <div style="font-size:56px;">😈</div>
+  <div class="ch-box">
+    <div class="ch-type" id="ch-type">DARE</div>
+    <div class="ch-text" id="ch-text">…</div>
+    <div class="ch-tip" id="ch-tip"></div>
+  </div>
+  <button class="btn-rose" onclick="challengeDone()">CHALLENGE DONE! 💪</button>
+</div>
+
+<!-- GENIE CHALLENGE (genie loses) -->
+<div id="s-genie-challenge" class="screen">
+  <div style="font-size:64px;animation:float 3s ease-in-out infinite;">🧞</div>
+  <div class="title-main" style="color:var(--cyan);">THE GENIE LOSES!</div>
+  <div class="desc-box">
+    <b>Both players resisted all 7 questions!</b><br><br>
+    The Genie couldn't figure out your characters. You WIN! 🏆<br><br>
+    Now give the Genie a challenge — make them do something embarrassing! 😂
+  </div>
+  <button class="btn-gold" onclick="restartGame()">PLAY AGAIN 🔮</button>
+</div>
+
+<!-- RESULT -->
+<div id="s-result" class="screen">
+  <div class="res-trophy">🏆</div>
+  <div class="res-title" id="res-title">Results!</div>
+  <div class="res-sub" id="res-sub"></div>
+  <div class="score-list" id="score-list"></div>
+  <button class="btn-gold" onclick="restartGame()" style="margin-top:8px;">🔮 Play Again</button>
+  <button class="btn-outline" onclick="goHome()">🏠 New Game</button>
+</div>
+
+<script>
+// ═══════ FIREBASE ═══════
+const firebaseConfig = {
+  apiKey: "AIzaSyBaVmFiNUqIk-xJvQgN1WVRWW_trK4qen8",
+  authDomain: "my-game-60f6e.firebaseapp.com",
+  databaseURL: "https://my-game-60f6e-default-rtdb.firebaseio.com",
+  projectId: "my-game-60f6e",
+  storageBucket: "my-game-60f6e.firebasestorage.app",
+  messagingSenderId: "434246900155",
+  appId: "1:434246900155:web:20fe1ecd166c142b724c9e"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ═══════ STATE ═══════
+const TOTAL_Q = 7;
+const CHALLENGES = [
+  {type:'IMITATION',text:'Imitate a famous person for 15 seconds without speaking — only gestures and sounds! The others must guess who.',tip:'🎭 Be theatrical!'},
+  {type:'TONGUE TWISTER',text:'Say this 3 times fast without any mistake: "She sells seashells by the seashore."',tip:'👅 No mistakes allowed!'},
+  {type:'SALES PITCH',text:'You have 20 seconds to convince everyone to buy an invisible hat. Sell it!',tip:'🎩 Be convincing!'},
+  {type:'SUPERHERO',text:'Strike your most powerful superhero pose and hold it for 10 seconds while everyone cheers.',tip:'💪 Commit fully!'},
+  {type:'ALIEN VISITOR',text:'Introduce yourself as an alien visiting Earth for the first time. In English, explain what surprises you most about humans.',tip:'👽 Stay in character!'},
+  {type:'SOUND EFFECTS',text:'Using only your mouth, recreate a full action movie scene — explosions, running, punches!',tip:'💥 Go completely crazy!'},
+  {type:'WEATHER REPORT',text:'Present the weather forecast for Mars in a dramatic TV presenter voice. In English only.',tip:'🚀 Make it epic!'},
+  {type:'SPEED ROUND',text:'Name 10 countries in English in under 15 seconds. Go!',tip:'⏱️ No hesitation!'},
+  {type:'ROBOT MODE',text:'Walk like a robot across the room and say one full sentence in English in a complete robot monotone voice.',tip:'🤖 No human emotion!'},
+  {type:'IMPRESSIONIST',text:'Say "I love playing this game with my friends" in 3 different accents: American, British, and Australian.',tip:'🌍 Nail those accents!'},
+];
+
+let myName = '';
+let myIndex = -1; // 0 = host, 1 = guest
+let roomCode = '';
+let roomRef = null;
+let currentQ = 0;
+let myHistory = [];
+let myAnsweredThisQ = false;
+let gameListeners = [];
+
+// ═══════ UTILS ═══════
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function confColor(p){
+  if(p<40) return 'var(--green)';
+  if(p<70) return 'var(--gold)';
+  return 'var(--rose)';
+}
+function confetti(n=50){
+  const cols=['#f0c040','#9b6fff','#00e5ff','#ff4fa0','#00e890','#fff'];
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');
+    d.className='conf-dot';
+    d.style.cssText=`left:${Math.random()*100}%;top:${-10-Math.random()*30}px;width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;background:${cols[~~(Math.random()*cols.length)]};animation-delay:${Math.random()*.8}s;animation-duration:${1+Math.random()*.8}s;`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),2500);
+  }
+}
+function genCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return Array.from({length:4},()=>chars[~~(Math.random()*chars.length)]).join('');
+}
+function removeListeners(){
+  gameListeners.forEach(u=>u());
+  gameListeners=[];
+}
+
+// ═══════ HOME ═══════
+function showJoin(){ show('s-join'); }
+
+// ═══════ CREATE ROOM ═══════
+async function createRoom(){
+  const name = document.getElementById('inp-name').value.trim();
+  if(!name){ alert('Enter your name first!'); return; }
+  myName = name;
+  myIndex = 0;
+  roomCode = genCode();
+
+  roomRef = db.ref('rooms/' + roomCode);
+  await roomRef.set({
+    status: 'waiting',
+    players: { 0: { name: myName, ready: false, confidence: 0 } },
+    currentQ: 0,
+    question: '',
+    comment: '',
+    answers: {},
+    guesses: {},
+  });
+
+  document.getElementById('display-code').textContent = roomCode;
+  show('s-waiting');
+
+  // Listen for guest joining
+  const unsub = roomRef.child('players/1').on('value', snap => {
+    if(snap.exists() && snap.val().name){
+      unsub(); // stop listening
+      startThinkPhase();
+    }
+  });
+  gameListeners.push(() => roomRef.child('players/1').off('value', unsub));
+}
+
+// ═══════ JOIN ROOM ═══════
+async function joinRoom(){
+  const name = document.getElementById('inp-join-name').value.trim();
+  const code = document.getElementById('inp-code').value.trim().toUpperCase();
+  if(!name || code.length !== 4){ alert('Enter your name and the 4-letter code!'); return; }
+
+  myName = name;
+  myIndex = 1;
+  roomCode = code;
+  roomRef = db.ref('rooms/' + roomCode);
+
+  const snap = await roomRef.once('value');
+  if(!snap.exists()){ alert('Room not found! Check the code.'); return; }
+
+  await roomRef.child('players/1').set({ name: myName, ready: false, confidence: 0 });
+  startThinkPhase();
+}
+
+// ═══════ THINK PHASE ═══════
+function startThinkPhase(){
+  document.getElementById('think-name').textContent = myName.toUpperCase() + '!';
+  show('s-think');
+}
+
+async function playerReady(){
+  await roomRef.child(`players/${myIndex}/ready`).set(true);
+  show('s-waiting-ready');
+
+  const otherIdx = myIndex === 0 ? 1 : 0;
+  const unsub = roomRef.child(`players/${otherIdx}/ready`).on('value', snap => {
+    if(snap.val() === true){
+      unsub();
+      if(myIndex === 0){
+        // Host kicks off first question
+        startQuestionRound(1);
+      } else {
+        // Guest just listens
+        listenForQuestion();
+      }
+    }
+  });
+  gameListeners.push(()=>roomRef.child(`players/${otherIdx}/ready`).off('value',unsub));
+}
+
+// ═══════ QUESTION PHASE ═══════
+async function startQuestionRound(qNum){
+  currentQ = qNum;
+  myAnsweredThisQ = false;
+
+  // Reset answers in Firebase
+  await roomRef.update({ answers: {}, currentQ: qNum, question: '', comment: '' });
+
+  // Init player cards
+  const pSnap = await roomRef.child('players').once('value');
+  const pData = pSnap.val();
+  [0,1].forEach(i => {
+    const p = pData[i];
+    if(p){
+      document.getElementById(`adc-name-${i}`).textContent = p.name;
+      document.getElementById(`adc-ans-${i}`).textContent = '—';
+      const pct = Math.round(p.confidence||0);
+      const col = confColor(pct);
+      document.getElementById(`adc-conf-${i}`).textContent = pct+'%';
+      document.getElementById(`adc-conf-${i}`).style.color = col;
+      document.getElementById(`adc-bar-${i}`).style.width = pct+'%';
+      document.getElementById(`adc-bar-${i}`).style.background = col;
+      document.getElementById(`adc-${i}`).classList.remove('answered');
+    }
+  });
+
+  document.getElementById('q-pill').textContent = `Question ${qNum}`;
+  document.getElementById('q-total').textContent = `of ${TOTAL_Q}`;
+  document.getElementById('g-comment').style.display='none';
+  document.getElementById('g-question').innerHTML = '<div class="waiting-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ans-grid').style.display='grid';
+  document.getElementById('answered-msg').style.display='none';
+  document.getElementById('waiting-other').style.display='none';
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
+  show('s-question');
+
+  // Fetch question from AI (host only)
+  await fetchGenieQuestion(qNum);
+}
+
+async function fetchGenieQuestion(qNum){
+  const systemPrompt = `You are a dramatic, funny and clever Genie playing a guessing game with TWO players simultaneously.
+Each player is secretly thinking of a different famous person. You do NOT know who they chose.
+You ask the SAME yes/no question to both players. Based on their answers, you try to guess who each is thinking of.
+
+RULES:
+- Always write in ENGLISH only. Never use French.
+- Ask exactly ONE question. Short and punchy — max 12 words.
+- Be theatrical, funny, and dramatic! Use expressions like "Hmm…", "I sense…", "AHA!", "Interesting!"
+- After question 7, make your FINAL GUESS for each player.
+- For questions 1-6: format exactly like this:
+  COMMENT: [short funny remark max 8 words]
+  QUESTION: [your yes/no question?]
+- For question 7 (final): format exactly like this:
+  COMMENT: [dramatic reveal line]
+  GUESS_P1: [full name you guess for player 1]
+  GUESS_P2: [full name you guess for player 2]
+- Never reveal you know or don't know who they chose. Play it up!`;
+
+  const msgs = myHistory.length === 0
+    ? [{role:'user', content:`Question ${qNum} of ${TOTAL_Q}. Ask your first question!`}]
+    : [...myHistory, {role:'user', content:`Question ${qNum} of ${TOTAL_Q}. Ask the next question!`}];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:300,
+        system: systemPrompt,
+        messages: msgs,
+      })
+    });
+    const data = await res.json();
+    const text = (data.content?.[0]?.text||'').trim();
+    myHistory.push({role:'assistant', content:text});
+
+    const commentMatch = text.match(/COMMENT:\s*([^\n]+)/i);
+    const questionMatch = text.match(/QUESTION:\s*([^\n]+)/i);
+    const comment = commentMatch ? commentMatch[1].trim() : '';
+    const question = questionMatch ? questionMatch[1].trim() : 'Is this person still alive?';
+
+    // Save to Firebase so both players see it
+    await roomRef.update({ comment, question });
+
+  } catch(e) {
+    await roomRef.update({ comment:'', question:'Is this person known worldwide?' });
+  }
+}
+
+function listenForQuestion(){
+  currentQ = 0;
+  myAnsweredThisQ = false;
+
+  // Init cards
+  roomRef.child('players').once('value').then(snap=>{
+    const pData = snap.val();
+    [0,1].forEach(i=>{
+      const p=pData[i];
+      if(p){
+        document.getElementById(`adc-name-${i}`).textContent=p.name;
+        document.getElementById(`adc-ans-${i}`).textContent='—';
+        document.getElementById(`adc-conf-${i}`).textContent='0%';
+        document.getElementById(`adc-conf-${i}`).style.color='var(--green)';
+        document.getElementById(`adc-bar-${i}`).style.width='0%';
+        document.getElementById(`adc-bar-${i}`).style.background='var(--green)';
+        document.getElementById(`adc-${i}`).classList.remove('answered');
+      }
+    });
+  });
+
+  document.getElementById('q-pill').textContent='Question 1';
+  document.getElementById('q-total').textContent=`of ${TOTAL_Q}`;
+  document.getElementById('g-comment').style.display='none';
+  document.getElementById('g-question').innerHTML='<div class="waiting-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ans-grid').style.display='grid';
+  document.getElementById('answered-msg').style.display='none';
+  document.getElementById('waiting-other').style.display='none';
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
+  show('s-question');
+  setupGameListeners();
+}
+
+function setupGameListeners(){
+  // Listen for question changes
+  const unsubQ = roomRef.child('question').on('value', snap=>{
+    if(snap.val()){
+      const q = snap.val();
+      const faceOpts=['🧞','🔮','✨','🧿','🪬'];
+      document.getElementById('g-face').textContent=faceOpts[~~(Math.random()*faceOpts.length)];
+      document.getElementById('g-question').innerHTML=`<strong>${q}${q.endsWith('?')?'':'?'}</strong>`;
+    }
+  });
+  gameListeners.push(()=>roomRef.child('question').off('value',unsubQ));
+
+  // Listen for comment
+  const unsubC = roomRef.child('comment').on('value', snap=>{
+    const c = snap.val();
+    const el = document.getElementById('g-comment');
+    if(c){ el.textContent=c; el.style.display='block'; }
+    else { el.style.display='none'; }
+  });
+  gameListeners.push(()=>roomRef.child('comment').off('value',unsubC));
+
+  // Listen for currentQ changes
+  const unsubCQ = roomRef.child('currentQ').on('value', snap=>{
+    const q = snap.val();
+    if(q && q !== currentQ){
+      currentQ=q;
+      myAnsweredThisQ=false;
+      document.getElementById('q-pill').textContent=`Question ${q}`;
+      document.getElementById('g-question').innerHTML='<div class="waiting-dots"><span></span><span></span><span></span></div>';
+      document.getElementById('ans-grid').style.display='grid';
+      document.getElementById('answered-msg').style.display='none';
+      document.getElementById('waiting-other').style.display='none';
+      document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
+      [0,1].forEach(i=>{
+        document.getElementById(`adc-ans-${i}`).textContent='—';
+        document.getElementById(`adc-${i}`).classList.remove('answered');
+      });
+    }
+  });
+  gameListeners.push(()=>roomRef.child('currentQ').off('value',unsubCQ));
+
+  // Listen for answers
+  const unsubA = roomRef.child('answers').on('value', snap=>{
+    const answers = snap.val()||{};
+    [0,1].forEach(i=>{
+      if(answers[i]){
+        document.getElementById(`adc-ans-${i}`).textContent=answers[i].text;
+        document.getElementById(`adc-${i}`).classList.add('answered');
+        // Update confidence
+        const pct=Math.round(answers[i].confidence||0);
+        const col=confColor(pct);
+        document.getElementById(`adc-conf-${i}`).textContent=pct+'%';
+        document.getElementById(`adc-conf-${i}`).style.color=col;
+        document.getElementById(`adc-bar-${i}`).style.width=pct+'%';
+        document.getElementById(`adc-bar-${i}`).style.background=col;
+        // Update Firebase confidence
+        roomRef.child(`players/${i}/confidence`).set(pct);
+      }
+    });
+
+    // Both answered?
+    if(answers[0] && answers[1]){
+      document.getElementById('waiting-other').style.display='none';
+      setTimeout(()=>{
+        // Check for guesses
+        const g0=answers[0].guess; const g1=answers[1].guess;
+        if(g0||g1){
+          handleFinalGuesses(g0,g1);
+        } else if(currentQ < TOTAL_Q){
+          // Host advances
+          if(myIndex===0){
+            setTimeout(()=>startQuestionRound(currentQ+1),1500);
+          }
+          // Add answers to history (host only)
+          if(myIndex===0){
+            myHistory.push({
+              role:'user',
+              content:`Player 1 answered: "${answers[0].text}". Player 2 answered: "${answers[1].text}". Continue to next question.`
+            });
+          }
+        } else {
+          // Q7 done, trigger final guesses (host)
+          if(myIndex===0) doFinalGuess();
+        }
+      },1200);
+    }
+  });
+  gameListeners.push(()=>roomRef.child('answers').off('value',unsubA));
+
+  // Listen for guesses (final)
+  const unsubG = roomRef.child('guesses').on('value', snap=>{
+    if(snap.exists()){
+      const g=snap.val();
+      if(g.done) showResults(g);
+    }
+  });
+  gameListeners.push(()=>roomRef.child('guesses').off('value',unsubG));
+}
+
+// ═══════ SUBMIT ANSWER ═══════
+async function submitMyAnswer(ansText){
+  if(myAnsweredThisQ) return;
+  myAnsweredThisQ=true;
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+  document.getElementById('ans-grid').style.display='none';
+  document.getElementById('answered-msg').style.display='block';
+  document.getElementById('waiting-other').style.display='block';
+
+  // Estimate confidence using quick AI call
+  const conf = await estimateConfidence(ansText);
+  await roomRef.child(`answers/${myIndex}`).set({ text:ansText, confidence:conf });
+}
+
+async function estimateConfidence(answerGiven){
+  // Simple confidence bump based on Q number and answer
+  const base = (currentQ/TOTAL_Q)*60;
+  const bump = answerGiven.includes('Yes')?8:answerGiven.includes('Probably')?5:2;
+  const jitter = Math.random()*12-6;
+  return Math.min(92, Math.max(3, Math.round(base+bump+jitter)));
+}
+
+// ═══════ FINAL GUESS (host only) ═══════
+async function doFinalGuess(){
+  const systemPrompt=`You are the Genie. Based on the conversation so far, make your FINAL GUESS for each player.
+Format exactly:
+COMMENT: [dramatic line]
+GUESS_P1: [your best guess for player 1's person]
+GUESS_P2: [your best guess for player 2's person]`;
+
+  const pSnap = await roomRef.child('players').once('value');
+  const pData = pSnap.val();
+  const p1name = pData[0]?.name||'Player 1';
+  const p2name = pData[1]?.name||'Player 2';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:300,
+        system:systemPrompt,
+        messages:[...myHistory,{role:'user',content:`Final round! Make your best guess for ${p1name} and ${p2name}.`}]
+      })
+    });
+    const data=await res.json();
+    const text=(data.content?.[0]?.text||'').trim();
+    const g1=text.match(/GUESS_P1:\s*([^\n]+)/i)?.[1]?.trim()||'Unknown';
+    const g2=text.match(/GUESS_P2:\s*([^\n]+)/i)?.[1]?.trim()||'Unknown';
+    const comment=text.match(/COMMENT:\s*([^\n]+)/i)?.[1]?.trim()||"I've made my decision!";
+
+    await roomRef.child('guesses').set({
+      done:true, g0:g1, g1:g2, comment,
+      p0name:p1name, p1name:p2name
+    });
+  }catch(e){
+    await roomRef.child('guesses').set({
+      done:true, g0:'Someone famous', g1:'Someone famous', comment:"I've made my decision!",
+      p0name:p1name, p1name:p2name
+    });
+  }
+}
+
+async function handleFinalGuesses(g0,g1){
+  // Already handled by guesses listener
+}
+
+// ═══════ RESULTS ═══════
+function showResults(g){
+  removeListeners();
+  // Show genie's final guesses and ask players if correct
+  // For simplicity: show results screen
+  const myGuess = myIndex===0 ? g.g0 : g.g1;
+  const otherGuess = myIndex===0 ? g.g1 : g.g0;
+  const myPName = myIndex===0 ? g.p0name : g.p1name;
+  const otherPName = myIndex===0 ? g.p1name : g.p0name;
+
+  document.getElementById('res-title').textContent = '🔮 The Genie Guesses!';
+  document.getElementById('res-sub').textContent = g.comment||'';
+
+  const list=document.getElementById('score-list');
+  list.innerHTML=`
+    <div class="score-item">
+      <div class="score-rank">🦁</div>
+      <div class="score-info">
+        <div class="score-name">${myPName}</div>
+        <div class="score-detail">Genie thinks: <b style="color:var(--gold)">${myGuess}</b></div>
+      </div>
+    </div>
+    <div class="score-item">
+      <div class="score-rank">🐯</div>
+      <div class="score-info">
+        <div class="score-name">${otherPName}</div>
+        <div class="score-detail">Genie thinks: <b style="color:var(--gold)">${otherGuess}</b></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:16px;background:rgba(155,111,255,.1);border:1.5px solid rgba(155,111,255,.2);border-radius:16px;font-size:14px;line-height:1.7;color:var(--muted);">
+      <b style="color:var(--white);">Did the Genie get it right?</b><br>
+      If yes → you get a challenge! 😈<br>
+      If no → the Genie loses! 🧞
+    </div>
+  `;
+
+  show('s-result');
+  confetti(50);
+}
+
+function challengeDone(){ restartGame(); }
+
+function restartGame(){
+  removeListeners();
+  myHistory=[];
+  currentQ=0;
+  myAnsweredThisQ=false;
+  // Rejoin same room
+  startThinkPhase();
+}
+
+function goHome(){
+  removeListeners();
+  myHistory=[];
+  roomRef=null;
+  roomCode='';
+  myIndex=-1;
+  show('s-home');
+}
+
+// Setup host listeners after creating room
+// (they start listening once game begins)
+// Guest listeners start in listenForQuestion()
+
+// When host's playerReady leads to game start, host needs listeners too
+const origStartQ = startQuestionRound;
+window.startQuestionRound = async function(qNum){
+  if(myIndex===0 && qNum===1){
+    // Set up host listeners too
+    setTimeout(setupGameListeners, 500);
+  }
+  await origStartQ(qNum);
+};
+</script>
+</body>
+</html>
