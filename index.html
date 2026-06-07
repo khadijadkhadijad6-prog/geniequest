@@ -271,16 +271,25 @@ function createRoom(){
   myIndex=0;
   players[0].name=myName;
 
-  peer=new Peer(null,{debug:0});
-  peer.on('open',id=>{
-    document.getElementById('display-code').textContent=id;
+  // Generate short 4-letter code
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const shortCode=Array.from({length:4},()=>chars[~~(Math.random()*chars.length)]).join('');
+  const peerId='gq-'+shortCode;
+
+  peer=new Peer(peerId,{debug:0});
+  peer.on('open',()=>{
+    document.getElementById('display-code').textContent=shortCode;
     show('s-waiting');
   });
   peer.on('connection',c=>{
     conn=c;
     setupConn();
   });
-  peer.on('error',e=>alert('Connection error: '+e));
+  peer.on('error',e=>{
+    // If ID taken, try again
+    if(e.type==='unavailable-id') createRoom();
+    else alert('Connection error: '+e);
+  });
 }
 
 function joinRoom(){
@@ -292,7 +301,8 @@ function joinRoom(){
 
   peer=new Peer(null,{debug:0});
   peer.on('open',()=>{
-    conn=peer.connect(code,{reliable:true});
+    const peerId='gq-'+code.toUpperCase();
+    conn=peer.connect(peerId,{reliable:true});
     setupConn();
   });
   peer.on('error',e=>alert('Could not connect. Check the code!'));
