@@ -276,7 +276,10 @@ function createRoom(){
   const shortCode=Array.from({length:4},()=>chars[~~(Math.random()*chars.length)]).join('');
   const peerId='gq-'+shortCode;
 
-  peer=new Peer(peerId,{debug:0});
+  peer=new Peer(peerId,{
+    host:'peerjs.com', port:443, path:'/peerjs', secure:true,
+    config:{'iceServers':[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}
+  });
   peer.on('open',()=>{
     document.getElementById('display-code').textContent=shortCode;
     show('s-waiting');
@@ -299,7 +302,10 @@ function joinRoom(){
   myIndex=1;
   players[1].name=myName;
 
-  peer=new Peer(null,{debug:0});
+  peer=new Peer(null,{
+    host:'peerjs.com', port:443, path:'/peerjs', secure:true,
+    config:{'iceServers':[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}
+  });
   peer.on('open',()=>{
     const peerId='gq-'+code.toUpperCase();
     conn=peer.connect(peerId,{reliable:true});
