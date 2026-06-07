@@ -430,59 +430,33 @@ async function playerReady(){
   await roomRef.child(`players/${myIndex}/ready`).set(true);
   show('s-waiting-ready');
 
-  const otherIdx = myIndex === 0 ? 1 : 0;
-  const unsub = roomRef.child(`players/${otherIdx}/ready`).on('value', snap => {
-    if(snap.val() === true){
-      unsub();
+  // Both players listen for when BOTH are ready
+  const unsub = roomRef.child('players').on('value', snap => {
+    const data = snap.val();
+    if(data && data[0] && data[1] && data[0].ready === true && data[1].ready === true){
+      roomRef.child('players').off('value', unsub);
+      // Setup listeners for both
+      setupGameListeners();
+      // Host also fetches the first question
       if(myIndex === 0){
-        // Host kicks off first question
-        startQuestionRound(1);
-      } else {
-        // Guest just listens
-        listenForQuestion();
+        setTimeout(() => {
+          roomRef.update({ currentQ: 1, question: '', comment: '', answers: {} });
+          fetchGenieQuestion(1);
+          currentQ = 1;
+          myAnsweredThisQ = false;
+        }, 500);
       }
+      // Show question screen
+      initQuestionUI(1);
     }
   });
-  gameListeners.push(()=>roomRef.child(`players/${otherIdx}/ready`).off('value',unsub));
 }
 
 // ═══════ QUESTION PHASE ═══════
 async function startQuestionRound(qNum){
   currentQ = qNum;
   myAnsweredThisQ = false;
-
-  // Reset answers in Firebase
   await roomRef.update({ answers: {}, currentQ: qNum, question: '', comment: '' });
-
-  // Init player cards
-  const pSnap = await roomRef.child('players').once('value');
-  const pData = pSnap.val();
-  [0,1].forEach(i => {
-    const p = pData[i];
-    if(p){
-      document.getElementById(`adc-name-${i}`).textContent = p.name;
-      document.getElementById(`adc-ans-${i}`).textContent = '—';
-      const pct = Math.round(p.confidence||0);
-      const col = confColor(pct);
-      document.getElementById(`adc-conf-${i}`).textContent = pct+'%';
-      document.getElementById(`adc-conf-${i}`).style.color = col;
-      document.getElementById(`adc-bar-${i}`).style.width = pct+'%';
-      document.getElementById(`adc-bar-${i}`).style.background = col;
-      document.getElementById(`adc-${i}`).classList.remove('answered');
-    }
-  });
-
-  document.getElementById('q-pill').textContent = `Question ${qNum}`;
-  document.getElementById('q-total').textContent = `of ${TOTAL_Q}`;
-  document.getElementById('g-comment').style.display='none';
-  document.getElementById('g-question').innerHTML = '<div class="waiting-dots"><span></span><span></span><span></span></div>';
-  document.getElementById('ans-grid').style.display='grid';
-  document.getElementById('answered-msg').style.display='none';
-  document.getElementById('waiting-other').style.display='none';
-  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
-  show('s-question');
-
-  // Fetch question from AI (host only)
   await fetchGenieQuestion(qNum);
 }
 
@@ -537,38 +511,7 @@ RULES:
   }
 }
 
-function listenForQuestion(){
-  currentQ = 0;
-  myAnsweredThisQ = false;
 
-  // Init cards
-  roomRef.child('players').once('value').then(snap=>{
-    const pData = snap.val();
-    [0,1].forEach(i=>{
-      const p=pData[i];
-      if(p){
-        document.getElementById(`adc-name-${i}`).textContent=p.name;
-        document.getElementById(`adc-ans-${i}`).textContent='—';
-        document.getElementById(`adc-conf-${i}`).textContent='0%';
-        document.getElementById(`adc-conf-${i}`).style.color='var(--green)';
-        document.getElementById(`adc-bar-${i}`).style.width='0%';
-        document.getElementById(`adc-bar-${i}`).style.background='var(--green)';
-        document.getElementById(`adc-${i}`).classList.remove('answered');
-      }
-    });
-  });
-
-  document.getElementById('q-pill').textContent='Question 1';
-  document.getElementById('q-total').textContent=`of ${TOTAL_Q}`;
-  document.getElementById('g-comment').style.display='none';
-  document.getElementById('g-question').innerHTML='<div class="waiting-dots"><span></span><span></span><span></span></div>';
-  document.getElementById('ans-grid').style.display='grid';
-  document.getElementById('answered-msg').style.display='none';
-  document.getElementById('waiting-other').style.display='none';
-  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
-  show('s-question');
-  setupGameListeners();
-}
 
 function setupGameListeners(){
   // Listen for question changes
@@ -641,7 +584,13 @@ function setupGameListeners(){
         } else if(currentQ < TOTAL_Q){
           // Host advances
           if(myIndex===0){
-            setTimeout(()=>startQuestionRound(currentQ+1),1500);
+            const nextQ = currentQ+1;
+            setTimeout(()=>{
+              initQuestionUI(nextQ);
+              startQuestionRound(nextQ);
+            },1500);
+          } else {
+            setTimeout(()=>initQuestionUI(currentQ+1),1500);
           }
           // Add answers to history (host only)
           if(myIndex===0){
@@ -667,6 +616,34 @@ function setupGameListeners(){
     }
   });
   gameListeners.push(()=>roomRef.child('guesses').off('value',unsubG));
+}
+
+function initQuestionUI(qNum){
+  roomRef.child('players').once('value').then(snap=>{
+    const pData = snap.val();
+    [0,1].forEach(i=>{
+      const p=pData[i];
+      if(p){
+        document.getElementById(`adc-name-${i}`).textContent=p.name;
+        document.getElementById(`adc-ans-${i}`).textContent='—';
+        document.getElementById(`adc-conf-${i}`).textContent='0%';
+        document.getElementById(`adc-conf-${i}`).style.color='var(--green)';
+        document.getElementById(`adc-bar-${i}`).style.width='0%';
+        document.getElementById(`adc-bar-${i}`).style.background='var(--green)';
+        document.getElementById(`adc-${i}`).classList.remove('answered');
+      }
+    });
+  });
+  document.getElementById('q-pill').textContent=`Question ${qNum}`;
+  document.getElementById('q-total').textContent=`of ${TOTAL_Q}`;
+  document.getElementById('g-comment').style.display='none';
+  document.getElementById('g-question').innerHTML='<div class="waiting-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('ans-grid').style.display='grid';
+  document.getElementById('answered-msg').style.display='none';
+  document.getElementById('waiting-other').style.display='none';
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=false);
+  myAnsweredThisQ=false;
+  show('s-question');
 }
 
 // ═══════ SUBMIT ANSWER ═══════
@@ -797,19 +774,7 @@ function goHome(){
   show('s-home');
 }
 
-// Setup host listeners after creating room
-// (they start listening once game begins)
-// Guest listeners start in listenForQuestion()
 
-// When host's playerReady leads to game start, host needs listeners too
-const origStartQ = startQuestionRound;
-window.startQuestionRound = async function(qNum){
-  if(myIndex===0 && qNum===1){
-    // Set up host listeners too
-    setTimeout(setupGameListeners, 500);
-  }
-  await origStartQ(qNum);
-};
 </script>
 </body>
 </html>
